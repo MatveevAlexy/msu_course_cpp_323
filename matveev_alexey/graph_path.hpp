@@ -11,5 +11,6 @@ struct GraphPath {
 
   std::vector<VertexId> vertex_ids;
   std::vector<EdgeId> edge_ids;
+  Edge::Duration duration;
 };
 }  // namespace uni_course_cpp

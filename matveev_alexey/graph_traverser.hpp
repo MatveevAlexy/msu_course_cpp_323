@@ -11,6 +11,9 @@ class GraphTraverser {
   GraphPath findShortestPath(const VertexId& source_vertex_id,
                              const VertexId& destination_vertex_id) const;
 
+  GraphPath findFastestPath(const VertexId& source_vertex_id,
+                            const VertexId& destination_vertex_id) const;
+
   std::vector<GraphPath> findAllPaths() const;
 
  private:

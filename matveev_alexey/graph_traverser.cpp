@@ -13,6 +13,7 @@
 
 namespace {
 constexpr int MAX_DISTANCE = INT_MAX;
+constexpr int MAX_DURATION = INT_MAX;
 const int MAX_THREADS_COUNT = std::thread::hardware_concurrency();
 }  // namespace
 
@@ -44,6 +45,42 @@ GraphPath GraphTraverser::findShortestPath(
         all_paths[next_vertex_id] = all_paths[current_vertex_id];
         all_paths[next_vertex_id].vertex_ids.push_back(next_vertex_id);
         all_paths[next_vertex_id].edge_ids.push_back(edge_id);
+        all_paths[next_vertex_id].duration =
+            all_paths[current_vertex_id].duration + edge.duration;
+      }
+    }
+  }
+  return all_paths[destination_vertex_id];
+}
+
+GraphPath GraphTraverser::findFastestPath(
+    const VertexId& source_vertex_id,
+    const VertexId& destination_vertex_id) const {
+  assert(graph_.hasVertex(source_vertex_id));
+  assert(graph_.hasVertex(destination_vertex_id));
+  std::unordered_map<VertexId, GraphPath> all_paths;
+  for (const auto& vertex : graph_.vertexes()) {
+    all_paths[vertex.id].duration = MAX_DURATION;
+  }
+  all_paths[source_vertex_id].vertex_ids.push_back(source_vertex_id);
+  all_paths[source_vertex_id].duration = 0;
+  std::queue<VertexId> pass_waiting;
+  pass_waiting.push(source_vertex_id);
+  while (!pass_waiting.empty()) {
+    const auto current_vertex_id = pass_waiting.front();
+    pass_waiting.pop();
+    for (const auto& edge_id : graph_.vertexConnections(current_vertex_id)) {
+      const auto edge = graph_.getEdge(edge_id);
+      VertexId next_vertex_id =
+          edge.vertex_id1 + edge.vertex_id2 - current_vertex_id;
+      if (all_paths[current_vertex_id].duration + edge.duration <
+          all_paths[next_vertex_id].duration) {
+        pass_waiting.push(next_vertex_id);
+        all_paths[next_vertex_id] = all_paths[current_vertex_id];
+        all_paths[next_vertex_id].vertex_ids.push_back(next_vertex_id);
+        all_paths[next_vertex_id].edge_ids.push_back(edge_id);
+        all_paths[next_vertex_id].duration =
+            all_paths[current_vertex_id].duration + edge.duration;
       }
     }
   }

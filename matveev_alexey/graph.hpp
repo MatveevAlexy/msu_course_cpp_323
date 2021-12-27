@@ -16,21 +16,25 @@ struct Vertex {
 };
 
 struct Edge {
+  using Duration = int;
   enum class Colors { Gray, Green, Yellow, Red };
   static constexpr std::array<Edge::Colors, 4> ALL_COLORS = {
       Colors::Gray, Colors::Green, Colors::Yellow, Colors::Red};
   const EdgeId id;
   const VertexId vertex_id1;
   const VertexId vertex_id2;
+  const Duration duration;
   const Colors color;
   Edge(const EdgeId& _id,
        const VertexId& _vertex_id1,
        const VertexId& _vertex_id2,
-       const Colors& _color)
+       const Colors& _color,
+       const Duration _duration)
       : id(_id),
         vertex_id1(_vertex_id1),
         vertex_id2(_vertex_id2),
-        color(_color) {}
+        color(_color),
+        duration(_duration) {}
 };
 
 class Graph {

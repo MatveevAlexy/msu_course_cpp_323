@@ -3,6 +3,9 @@
 #include <string>
 #include <vector>
 #include "config.hpp"
+#include "game.hpp"
+#include "game_generator.hpp"
+#include "game_printer.hpp"
 #include "graph.hpp"
 #include "graph_generation_controller.hpp"
 #include "graph_generator.hpp"
@@ -61,7 +64,7 @@ int handleThreadsNum() {
   return threads_num;
 }
 
-void write_to_file(const std::string& string, const std::string& file_name) {
+void writeToFile(const std::string& string, const std::string& file_name) {
   std::ofstream file(file_name);
   file << string;
   file.close();
@@ -94,24 +97,35 @@ std::string genFinishedString(int i, const uni_course_cpp::Graph& graph) {
   return string;
 }
 
-std::string traversalStartedString(int index) {
-  return "Graph" + std::to_string(index) + ", Traversal Started\n";
+std::string gameStartedString() {
+  return "Game is Preparing\n";
 }
 
-std::string traversalFinishedString(
-    int index,
-    const std::vector<uni_course_cpp::GraphPath>& paths) {
+std::string gameFinishedString(uni_course_cpp::Game game) {
+  uni_course_cpp::GamePrinter game_printer(game);
+  return "Game is Ready {\n" + game_printer.printGame() + "}\n";
+}
+
+std::string traversalStartedString(int index, std::string fast_or_short) {
   std::string string =
-      "Graph " + std::to_string(index) + ", Traversal Ended, Paths: {\n";
-  for (const auto& path : paths) {
-    string += "  vertexes: [";
-    for (const auto& vertex_id : path.vertex_ids) {
-      string += std::to_string(vertex_id) + ", ";
-    }
-    string.pop_back();
-    string.pop_back();
-    string += "], distance: " + std::to_string(path.distance()) + ",\n";
+      "Graph" + std::to_string(index) + ", Traversal Started\n";
+  string += "  Searching for " + fast_or_short + "path\n";
+  return string;
+}
+
+std::string traversalFinishedString(int index,
+                                    const uni_course_cpp::GraphPath& path,
+                                    std::string fast_or_short) {
+  std::string string = "Graph " + std::to_string(index) + ", Traversal Ended, ";
+  string += fast_or_short + " path: {\n";
+  string += "  vertexes: [";
+  for (const auto& vertex_id : path.vertex_ids) {
+    string += std::to_string(vertex_id) + ", ";
   }
+  string.pop_back();
+  string.pop_back();
+  string += "], distance: " + std::to_string(path.distance()) + ", ";
+  string += "duration: " + std::to_string(path.duration) + ",\n";
   string += "}\n";
   return string;
 }
@@ -121,55 +135,31 @@ void prepareTempDirectory() {
       uni_course_cpp::config::TEMP_DIRECTORY_PATH);
 }
 
-std::vector<uni_course_cpp::Graph> generateGraphs(
-    const uni_course_cpp::GraphGenerator::Params& params,
-    int graphs_count,
-    int threads_count) {
-  auto generation_controller = uni_course_cpp::GraphGenerationController(
-      threads_count, graphs_count, params);
-
-  auto& logger = uni_course_cpp::Logger::getLogger();
-
-  auto graphs = std::vector<uni_course_cpp::Graph>();
-  graphs.reserve(graphs_count);
-
-  generation_controller.generate(
-      [&logger](int index) { logger.log(genStartedString(index)); },
-      [&logger, &graphs](int index, uni_course_cpp::Graph graph) {
-        logger.log(genFinishedString(index, graph));
-        const auto graph_printer = uni_course_cpp::GraphPrinter(graph);
-        write_to_file(graph_printer.print(),
-                      uni_course_cpp::config::TEMP_DIRECTORY_PATH + "graph_" +
-                          std::to_string(index) + ".json");
-        graphs.push_back(std::move(graph));
-      });
-  return graphs;
-}
-
-void traverseGraphs(const std::vector<uni_course_cpp::Graph>& graphs) {
-  auto traversal_controller = uni_course_cpp::GraphTraversalController(graphs);
-
-  auto& logger = uni_course_cpp::Logger::getLogger();
-
-  traversal_controller.traverse(
-      [&logger](int index) { logger.log(traversalStartedString(index)); },
-      [&logger](int index, std::vector<uni_course_cpp::GraphPath> paths) {
-        logger.log(traversalFinishedString(index, paths));
-      });
-}
-
 }  // namespace
 
 int main() {
   const int depth = handle_depth_input();
   const int new_vertexes_num = handle_new_vertexes_num_input();
-  const int graphs_count = handleNewGraphsCountInput();
-  const int threads_num = handleThreadsNum();
   prepareTempDirectory();
 
   const auto params =
       uni_course_cpp::GraphGenerator::Params(depth, new_vertexes_num);
-  const auto graphs = generateGraphs(params, graphs_count, threads_num);
-  traverseGraphs(graphs);
+  auto& logger = uni_course_cpp::Logger::getLogger();
+  logger.log(gameStartedString());
+  const auto game_generator = uni_course_cpp::GameGenerator(params);
+  const auto game = game_generator.generateGame();
+  logger.log(gameFinishedString(game));
+
+  logger.log(traversalStartedString(0, "Shortest"));
+  const auto shortest_path = game.findShortestPath();
+  logger.log(traversalFinishedString(0, shortest_path, "Shortest"));
+
+  logger.log(traversalStartedString(0, "Fastest"));
+  const auto fastest_path = game.findFastestPath();
+  logger.log(traversalFinishedString(0, fastest_path, "Fastest"));
+
+  const auto graph_printer = uni_course_cpp::GraphPrinter(game.map());
+  const auto map = graph_printer.print();
+  writeToFile(map, uni_course_cpp::config::TEMP_DIRECTORY_PATH + "map.json");
   return 0;
 }

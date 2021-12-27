@@ -45,7 +45,8 @@ std::string GraphPrinter::printEdge(const Edge& edge) const {
   edge_string += ",\n   \"vertex_ids\": [";
   edge_string += std::to_string(edge.vertex_id1) + ", ";
   edge_string += std::to_string(edge.vertex_id2) + "],\n   ";
-  edge_string += "\"color\": \"" + colorToString(edge.color) + "\"\n  }, ";
+  edge_string += "\"color\": \"" + colorToString(edge.color) + "\",\n";
+  edge_string += "\"duration\": " + std::to_string(edge.duration) + "\n  }, ";
   return edge_string;
 }
 

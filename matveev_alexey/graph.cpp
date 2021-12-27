@@ -2,9 +2,34 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <random>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
+
+namespace {
+int randomValue(int min, int max) {
+  std::random_device rd;
+  std::mt19937 rng(rd());
+  std::uniform_int_distribution distribution(min, max);
+  return distribution(rng);
+}
+
+int getDuration(uni_course_cpp::Edge::Colors color) {
+  switch (color) {
+    case uni_course_cpp::Edge::Colors::Gray:
+      return randomValue(1, 2);
+    case uni_course_cpp::Edge::Colors::Green:
+      return randomValue(1, 2);
+    case uni_course_cpp::Edge::Colors::Yellow:
+      return randomValue(1, 3);
+    case uni_course_cpp::Edge::Colors::Red:
+      return randomValue(2, 4);
+    default:
+      throw std::runtime_error("Cannot be reached.");
+  }
+}
+}  // namespace
 
 namespace uni_course_cpp {
 
@@ -93,8 +118,8 @@ void Graph::addEdge(const VertexId& vertex_id1, const VertexId& vertex_id2) {
   if (color == Edge::Colors::Gray) {
     grayEdgeInitialization(vertex_id1, vertex_id2);
   }
-  const auto& new_edge =
-      edges_.emplace_back(getNewEdgeId(), vertex_id1, vertex_id2, color);
+  const auto& new_edge = edges_.emplace_back(
+      getNewEdgeId(), vertex_id1, vertex_id2, color, getDuration(color));
   color_list_[color].push_back(new_edge.id);
   connection_list_[vertex_id1].push_back(new_edge.id);
   if (vertex_id1 != vertex_id2) {
